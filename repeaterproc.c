@@ -202,4 +202,5 @@ int doRepeater(int server, int viewer)
             }
         }
     }
+    return 0; /* to make gcc happy */
 }
