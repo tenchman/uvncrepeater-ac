@@ -34,7 +34,7 @@
 //Repeater events for reporting repeater status to outside world: 
 //email, web-server, database etc, whoever is listening on eventlistener 
 //host/port
-enum repeaterEvents {
+typedef enum {
     VIEWER_CONNECT, 
     VIEWER_DISCONNECT, 
     SERVER_CONNECT, 
@@ -44,7 +44,7 @@ enum repeaterEvents {
     REPEATER_STARTUP, 
     REPEATER_SHUTDOWN,
     REPEATER_HEARTBEAT
-};
+} repeaterEvents;
 
 #define EXTRA_INFO_SIZE 100
 #define REP_EVENT_VERSION 1
