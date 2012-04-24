@@ -3,7 +3,7 @@
 
 #include "commondefines.h"
 
-//variables
+/* variables */
 extern int viewerPort;
 
 extern int serverPort;
@@ -38,7 +38,7 @@ extern int eventListenerPort;
 
 extern bool useHttpForEventListener;
 
-//functions
+/* functions */
 bool readIniFile(char *iniFilePathAndName);
 
 #endif

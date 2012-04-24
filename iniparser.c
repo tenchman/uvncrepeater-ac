@@ -27,10 +27,13 @@
 
  */
 
-//Modified by Jari Korhonen/2005:
-//-strcpy() -> strlcpy()
-//-sprintf() -> snprintf()
-//-removed strupc / strstrip (were not used)
+/* Modified by Jari Korhonen/2005:
+ * -strcpy() -> strlcpy()
+ * -sprintf() -> snprintf()
+ * -removed strupc / strstrip (were not used)
+ */
+
+/* Ansification 2012- Gernot Tenchio, https://github.com/tenchman */
 
 #include <stdio.h>
 #include <stdlib.h>

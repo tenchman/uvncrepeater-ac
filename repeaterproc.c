@@ -1,31 +1,32 @@
-// ///////////////////////////////////////////////////////////////////////////
-// Copyright (C) 2002 Ultr@VNC Team Members. All Rights Reserved.
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
-// USA.
-//
-// Program is based on the
-// http://www.imasy.or.jp/~gotoh/ssh/connect.c
-// Written By Shun-ichi GOTO <gotoh@taiyo.co.jp>
-//
-// If the source code for the program is not available from the place
-// from which you received this file, check
-// http://ultravnc.sourceforge.net/
-//
-// Linux port (C) 2005- Jari Korhonen, jarit1.korhonen@dnainternet.net
-//////////////////////////////////////////////////////////////////////
+/*
+ * Copyright (C) 2002 Ultr@VNC Team Members. All Rights Reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+ * USA.
+ *
+ * Program is based on the
+ * http://www.imasy.or.jp/~gotoh/ssh/connect.c
+ * Written By Shun-ichi GOTO <gotoh@taiyo.co.jp>
+ *
+ * If the source code for the program is not available from the place
+ * from which you received this file, check
+ * http://ultravnc.sourceforge.net/
+ *
+ * Linux port (C) 2005- Jari Korhonen, jarit1.korhonen@dnainternet.net
+ * Ansification 2012- Gernot Tenchio, https://github.com/tenchman
+ */
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -45,12 +46,13 @@
 #endif
 
 
-//Return values:
-// 1: Error (in select)
-// 2: Server has disconnected
-// 3: Viewer has disconnected
-// 4: Error when reading from viewer 
-// 5: Error when reading from server
+/* Return values:
+ * 1: Error (in select)
+ * 2: Server has disconnected
+ * 3: Viewer has disconnected
+ * 4: Error when reading from viewer
+ * 5: Error when reading from server
+ */
 int doRepeater(int server, int viewer)
 {
     /** vars for viewer input data **/
@@ -65,9 +67,9 @@ int doRepeater(int server, int viewer)
     int nfds, len;
     fd_set ifds;
     fd_set ofds;
-    
+
     /*
-     * repeater between server and viewer 
+     * repeater between server and viewer
      */
     nfds = ((viewer < server) ? server : viewer) + 1;
     viewerBufLen = 0;
@@ -92,7 +94,7 @@ int doRepeater(int server, int viewer)
             /* EINTR is normal if user presses ctrl+c */
             if (errno != EINTR) {
                 /*
-                * error in select, parent process should close both connections  
+                * error in select, parent process should close both connections
                 */
                 debug(LEVEL_2, "doRepeater(): select() failed, errno=%d (%s)\n", errno, strerror(errno));
             }
@@ -100,7 +102,7 @@ int doRepeater(int server, int viewer)
         }
 
         /*
-         * server => viewer 
+         * server => viewer
          */
         if (FD_ISSET(server, &ifds)
             && (serverBufLen < (int) sizeof(serverBuf))) {
@@ -108,15 +110,15 @@ int doRepeater(int server, int viewer)
 
             if (len == 0) {
                 debug(LEVEL_3, "doRepeater(): connection closed by server\n");
-                
-                //When server closes connection, parent process should also disconnect viewer
+
+                /* When server closes connection, parent process should also disconnect viewer */
                 return 2;
             }
             else if (len == -1) {
                 if (errno != ECONNRESET) {
 
                     /*
-                     * error 
+                     * error
                      */
                     debug(LEVEL_2, "doRepeater(): recv() from server failed, errno=%d (%s)\n", errno, strerror(errno));
                     return 5;
@@ -131,7 +133,7 @@ int doRepeater(int server, int viewer)
         }
 
         /*
-         * viewer => server 
+         * viewer => server
          */
         if (FD_ISSET(viewer, &ifds)
             && (viewerBufLen < (int) sizeof(viewerBuf))) {
@@ -140,13 +142,13 @@ int doRepeater(int server, int viewer)
             if (len == 0) {
                 debug(LEVEL_3, "doRepeater(): connection closed by viewer\n");
 
-                //When viewer closes connection,parent process should also disconnect server 
+                /* When viewer closes connection,parent process should also disconnect server */
                 return 3;
             }
             else if (len == -1) {
 
                 /*
-                 * error on reading from viewer 
+                 * error on reading from viewer
                  */
                 debug(LEVEL_2, "doRepeater(): recv() from viewer failed, errno = %d (%s)\n", errno, strerror(errno));
                 return 4;
@@ -154,14 +156,14 @@ int doRepeater(int server, int viewer)
             else {
 
                 /*
-                 * repeat 
+                 * repeat
                  */
                 viewerBufLen += len;
             }
         }
 
         /*
-         * flush data in viewerbuffer to server 
+         * flush data in viewerbuffer to server
          */
         if (0 < viewerBufLen) {
             len = send(server, viewerBuf, viewerBufLen, 0);
@@ -172,7 +174,7 @@ int doRepeater(int server, int viewer)
             else if (0 < len) {
 
                 /*
-                 * move data on to top of buffer 
+                 * move data on to top of buffer
                  */
                 viewerBufLen -= len;
 
@@ -184,7 +186,7 @@ int doRepeater(int server, int viewer)
         }
 
         /*
-         * flush data in serverbuffer to viewer 
+         * flush data in serverbuffer to viewer
          */
         if (0 < serverBufLen) {
             len = send(viewer, serverBuf, serverBufLen, 0);
