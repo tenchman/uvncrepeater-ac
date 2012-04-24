@@ -1,27 +1,44 @@
-CFLAGS=-Wall
-repeater: repeater.o repeaterproc.o openbsd_stringfuncs.o iniparser.o readini.o repeaterutil.o repeaterevents.o
-	g++ $(CFLAGS) -o repeater repeater.o repeaterproc.o openbsd_stringfuncs.o iniparser.o readini.o repeaterutil.o repeaterevents.o
+DESTDIR =
+PREFIX  = /usr/local
 
-repeater.o: repeater.cpp
-	g++ $(CFLAGS) -c repeater.cpp
+THECC   = gcc
+THELD   = gcc
+CFLAGS  = -W -Wall -ansi -D_XOPEN_SOURCE=500
+OPT     = -O2
+OBJS    = repeater.o repeaterproc.o openbsd_stringfuncs.o iniparser.o readini.o repeaterutil.o repeaterevents.o
 
-repeaterproc.o: repeaterproc.cpp
-	g++ $(CFLAGS) -c repeaterproc.cpp
+ifeq ($(V), 1)
+CC = $(THECC)
+LD = $(THELD)
+VERBOSE =
+else
+CC = @echo " CC   $@"; $(THECC)
+LD = @echo " LINK $@"; $(THELD)
+VERBOSE = @
+endif
 
-openbsd_stringfuncs.o: openbsd_stringfuncs.cpp
-	g++ $(CFLAGS) -c openbsd_stringfuncs.cpp
+all: repeater
 
-iniparser.o: iniparser.cpp
-	g++ $(CFLAGS) -c iniparser.cpp
+debug: CFLAGS += -DDEBUG -ggdb
+debug: OPT = -O0
+debug: all
 
-readini.o: readini.cpp
-	g++ $(CFLAGS) -c readini.cpp
+release: CFLAGS += -DNDEBUG
+release: all
 
-repeaterutil.o: repeaterutil.cpp
-	g++ $(CFLAGS) -c repeaterutil.cpp
+CFLAGS += $(OPT)
 
-repeaterevents.o: repeaterevents.cpp
-	g++ $(CFLAGS) -c repeaterevents.cpp
+repeater: $(OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(OBJS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+install: all
+	$(VERBOSE)mkdir -p $(DESTDIR)$(PREFIX)/bin
+	$(VERBOSE)mkdir -p $(DESTDIR)/etc
+	$(VERBOSE)cp -f repeater $(DESTDIR)$(PREFIX)/bin/uvncrepeater
+	$(VERBOSE)cp -f uvncrepeater.ini $(DESTDIR)/etc
 
 clean:
-	rm -f *.o repeater
+	$(VERBOSE)rm -f *.o repeater
