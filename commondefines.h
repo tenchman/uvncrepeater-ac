@@ -51,6 +51,7 @@
 #define TIMEOUT_10SECS  10                  //Timeout used in openConnectionToVncServer()
 #define TIMEOUT_5SECS   5                   //Timeout used in readPeerHandShake(), doEventWork()
 
+typedef enum {false, true} bool;
 
 typedef struct 
 {
