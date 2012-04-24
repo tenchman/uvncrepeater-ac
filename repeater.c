@@ -705,7 +705,7 @@ bool isExistingConnectionInactive(bool active, bool existing)
 
 
 //Function determines if connection is broken
-bool isPeerDisconnected(int socket, int connectionFrom)
+static bool isPeerDisconnected(int socket)
 {
     ssize_t n;
 
@@ -757,7 +757,7 @@ static void connectionRemover(int connectionFrom, repeaterInfo *rI, int index)
             fRemove = true;
             snprintf(removalReason, MY_TMP_BUF_LEN, "%s", "idle connection too old");
         }
-        else if (isPeerDisconnected(rI -> socket, connectionFrom)) {
+        else if (isPeerDisconnected(rI -> socket)) {
             //Peer has closed the connection before another peer appeared, remove
             fRemove = true;
             snprintf(removalReason, MY_TMP_BUF_LEN, "%s", "peer has disconnected");
@@ -1863,7 +1863,7 @@ static void cleanUpAfterRepeaterProcs(void)
 }
 
 //Terminate program with ctrl+c cleanly
-static void handleSigInt(int s)
+static void handleSigInt(__attribute__((unused))int s)
 {
     stopped = true;
 }
