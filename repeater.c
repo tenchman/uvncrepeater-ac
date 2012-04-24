@@ -1242,10 +1242,10 @@ int nonBlockingAccept(int socket, struct sockaddr *sa, socklen_t *sockLen)
 }
 
 
-/*Accept connections from both servers and viewers
- * connectionFrom == CONNECTIONFROMSERVER means server is connecting,
- * connectionFrom==CONNECTIONFROMVIEWER means viewer is connecting
- * Mode 1 connections are only accepted from viewers (repeater then connects to server)
+/* Accept connections from both servers and viewers
+ *  connectionFrom == CONNECTIONFROMSERVER means server is connecting,
+ *  connectionFrom == CONNECTIONFROMVIEWER means viewer is connecting
+ *  Mode 1 connections are only accepted from viewers (repeater then connects to server)
  */
 static void acceptConnection(int socket, int connectionFrom)
 {
