@@ -1,0 +1,8 @@
+Ansi-C Version of uvncrepeater V14 found @ http://koti.mbnet.fi/jtko/uvncrepeater/.
+
+Changes:
+
+* removed C++ compiler dependency
+* compilable with 'any?' Ansi-C compiler (tested with gcc, clang, tcc)
+* IPv6 support
+* support CIDR addresses in server lists
