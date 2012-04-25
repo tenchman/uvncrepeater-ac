@@ -1011,42 +1011,21 @@ static bool isServerAddressAllowed(char *serverIp)
 {
     int ii;
     addrParts srvAddr;
-    bool allow;
 
     srvAddr = getAddrPartsFromString(serverIp);
 
     for(ii = 0; ii < SERVERS_LIST_SIZE; ii++) {
-        allow = true;
-
-        /* List 255 == denied */
-        if ((srvListAllow[ii].a == 255) || (srvListAllow[ii].b == 255) ||
-            (srvListAllow[ii].c == 255) || (srvListAllow[ii].d == 255))
-            allow = false;
-
-        /* server 255 == denied */
-        if ((srvAddr.a == 255) || (srvAddr.b == 255) || (srvAddr.c == 255) || (srvAddr.d == 255))
-            allow = false;
-
-        /* server 0 == denied */
-        if ((srvAddr.a == 0) || (srvAddr.b == 0) || (srvAddr.c == 0) || (srvAddr.d == 0))
-            allow = false;
-
-
-        /* allowed so far? */
-        if (allow)
-        {
-            /* allow if exact match or if place is 0 in allow list */
-            if (((srvAddr.a == srvListAllow[ii].a) || (srvListAllow[ii].a == 0)) &&
-                ((srvAddr.b == srvListAllow[ii].b) || (srvListAllow[ii].b == 0)) &&
-                ((srvAddr.c == srvListAllow[ii].c) || (srvListAllow[ii].c == 0)) &&
-                ((srvAddr.d == srvListAllow[ii].d) || (srvListAllow[ii].d == 0)) ) {
-                    /* Allowed so far, check denial */
-                    if (!isServerAddressDenied(srvAddr)) {
-                        debug(LEVEL_3, "isServerAddressAllowed(): address is OK, allowing (%s)\n", serverIp);
-                        return true;
-                    }
-            }
-        }
+	/* allow if exact match or if place is 0 in allow list */
+	if (((srvAddr.a == srvListAllow[ii].a) || (srvListAllow[ii].a == 0)) &&
+	    ((srvAddr.b == srvListAllow[ii].b) || (srvListAllow[ii].b == 0)) &&
+	    ((srvAddr.c == srvListAllow[ii].c) || (srvListAllow[ii].c == 0)) &&
+	    ((srvAddr.d == srvListAllow[ii].d) || (srvListAllow[ii].d == 0)) ) {
+		/* Allowed so far, check denial */
+	    if (!isServerAddressDenied(srvAddr)) {
+		debug(LEVEL_3, "isServerAddressAllowed(): address is OK, allowing (%s)\n", serverIp);
+		return true;
+	    }
+	}
     }
 
     return false;
