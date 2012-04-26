@@ -252,13 +252,16 @@ int openConnectionToEventListener(const char *host, unsigned short port, char *l
 	} else {
 	    ipstr(rp->ai_addr, listenerIp, listenerIpSize);
 	    debug(LEVEL_3, "openConnectionToEventListener(): connecting to %s:%u\n", listenerIp, port);
+	    freeaddrinfo(result);
 	    return s;
 	}
     }
+    
+    freeaddrinfo(result);
+    listenerIp[0] = '\0';
     close(s);
     return -1;
 }
-
 
 /* Try to write exact number of bytes to socket
  * return 1 if things went OK,
