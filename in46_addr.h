@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2006 Jari Korhonen. jarit1.korhonen@dnainternet.net.
- * All Rights Reserved.
+ * Copyright (C) 2012 Gernot Tenchio.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,19 +15,30 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
  * USA.
- *
- *
- * If the source code for the program is not available from the place
- * from which you received this file, check
- * http://koti.mbnet.fi/jtko
- *
- */
+**/
 
-#ifndef REPEATER_UTIL_H
-#define REPEATER_UTIL_H
+#ifndef _IN_ADDR46_H
+#define _IN_ADDR46_H
 
-#include "commondefines.h"
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-extern addrParts getAddrPartsFromString(char *ipString);
+struct in46_addr
+{
+  int family;
+  int prefix;
+  union
+  {
+    struct in_addr addr;
+    struct in6_addr addr6;
+  } in;
+};
+
+int inet46_pton(const char *src, struct in46_addr *dst);
+int inet46_ntop(struct in46_addr *src, char *dst, socklen_t size);
+int inet46_memberof(struct in46_addr *net, struct in46_addr *addr);
+
+void inet6_netaddr(struct in6_addr *dst, struct in6_addr *src, int bits);
+void inet6_netmask(struct in6_addr *addr, int bits);
 
 #endif

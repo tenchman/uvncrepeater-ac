@@ -30,7 +30,6 @@
 #define REPEATER_EVENTS_H
 
 #include <time.h>
-#include "repeaterutil.h"
 
 /* Repeater events for reporting repeater status to outside world: 
  * email, web-server, database etc, whoever is listening on eventlistener 
@@ -82,7 +81,7 @@ typedef struct
     int tableIndex;
     long code;      
     int connMode;   /* CONN_MODE1 / CONN_MODE2 */
-    addrParts peerIp;
+    struct in46_addr peerIp;
 } connectionEvent;
 
 
@@ -95,8 +94,8 @@ typedef struct
     int viewerTableIndex;
     long code;
     int connMode;
-    addrParts serverIp;
-    addrParts viewerIp;
+    struct in46_addr serverIp;
+    struct in46_addr viewerIp;
 } sessionEvent;
 
 

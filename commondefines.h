@@ -29,6 +29,8 @@
 #ifndef _COMMON_DEFINES_H_
 #define _COMMON_DEFINES_H_
 
+#include "in46_addr.h"
+
 #define CONN_MODE1 1
 #define CONN_MODE2 2
 
@@ -53,14 +55,5 @@
 #define TIMEOUT_5SECS   5                   /* Timeout used in readPeerHandShake(), doEventWork() */
 
 typedef enum {false, true} bool;
-
-typedef struct 
-{
-    int a;
-    int b;
-    int c;
-    int d;
-} addrParts;
-
 
 #endif

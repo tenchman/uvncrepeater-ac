@@ -90,12 +90,12 @@ void clearFifo(void)
 static const char *formatStrings[3][2] =
 {
 	{
-		"EvMsgVer:%d,EvNum:%d,Time:%ld,Pid:%d,TblInd:%d,Code:%ld,Mode:%d,Ip:%d.%d.%d.%d\n",
-		"GET /? EvMsgVer=%d&EvNum=%d&Time=%ld&Pid=%d&TblInd=%d&Code=%ld&Mode=%d&Ip=%d.%d.%d.%d HTTP/1.0\n"
+		"EvMsgVer:%d,EvNum:%d,Time:%ld,Pid:%d,TblInd:%d,Code:%ld,Mode:%d,Ip:%s\n",
+		"GET /? EvMsgVer=%d&EvNum=%d&Time=%ld&Pid=%d&TblInd=%d&Code=%ld&Mode=%d&Ip=%s HTTP/1.0\n"
 	},
 	{
-		"EvMsgVer:%d,EvNum:%d,Time:%ld,Pid:%d,SvrTblInd:%d,VwrTblInd:%d,Code:%ld,Mode:%d,SvrIp:%d.%d.%d.%d,VwrIp:%d.%d.%d.%d\n",
-		"GET /? EvMsgVer=%d&EvNum=%d&Time=%ld&Pid=%d&SvrTblInd=%d&VwrTblInd=%d&Code=%ld&Mode=%d&SvrIp=%d.%d.%d.%d&VwrIp=%d.%d.%d.%d HTTP/1.0\n"
+		"EvMsgVer:%d,EvNum:%d,Time:%ld,Pid:%d,SvrTblInd:%d,VwrTblInd:%d,Code:%ld,Mode:%d,SvrIp:%s,VwrIp:%s\n",
+		"GET /? EvMsgVer=%d&EvNum=%d&Time=%ld&Pid=%d&SvrTblInd=%d&VwrTblInd=%d&Code=%ld&Mode=%d&SvrIp=%s&VwrIp=%s HTTP/1.0\n"
 	},
 	{
 		"EvMsgVer:%d,EvNum:%d,Time:%ld,Pid:%d,MaxSessions:%d\n",
@@ -119,6 +119,7 @@ static int doEventWork(void)
     char eventListenerIp[MAX_IP_LEN];
     int msgLen;
     int formatStrInd;
+    char ip0[INET6_ADDRSTRLEN], ip1[INET6_ADDRSTRLEN];
 
     if (useHttpForEventListener) {
 	formatStrInd = 1;
@@ -145,23 +146,24 @@ static int doEventWork(void)
                     /* Fall through */
                 case SERVER_DISCONNECT:
                     connEv = (connectionEvent *) ev.extraInfo;
+		    inet_ntop(connEv->peerIp.family, &connEv->peerIp.in.addr6, ip0, INET6_ADDRSTRLEN);
                     msgLen = snprintf(eventMessageToListener, MAX_EVENT_MSG_LEN,
                         formatStrings[0][formatStrInd],
                         REP_EVENT_VERSION, eventNum, ev.timeStamp, ev.repeaterProcessId,
-                        connEv -> tableIndex, connEv -> code, connEv -> connMode, connEv->peerIp.a,
-                        connEv->peerIp.b, connEv->peerIp.c, connEv->peerIp.d);
+                        connEv -> tableIndex, connEv -> code, connEv -> connMode, ip0);
                     break;
 
                 case VIEWER_SERVER_SESSION_START:
                     /* Fall through */
                 case VIEWER_SERVER_SESSION_END:
                     sessEv = (sessionEvent *) ev.extraInfo;
+		    inet_ntop(sessEv->serverIp.family, &sessEv->serverIp.in.addr6, ip0, INET6_ADDRSTRLEN);
+		    inet_ntop(sessEv->viewerIp.family, &sessEv->viewerIp.in.addr6, ip1, INET6_ADDRSTRLEN);
                     msgLen = snprintf(eventMessageToListener, MAX_EVENT_MSG_LEN,
                         formatStrings[1][formatStrInd],
                         REP_EVENT_VERSION, eventNum, ev.timeStamp, ev.repeaterProcessId,
                         sessEv -> serverTableIndex, sessEv -> viewerTableIndex, sessEv -> code, sessEv -> connMode,
-                        sessEv->serverIp.a, sessEv->serverIp.b, sessEv->serverIp.c, sessEv->serverIp.d,
-                        sessEv->viewerIp.a, sessEv->viewerIp.b, sessEv->viewerIp.c, sessEv->viewerIp.d);
+                        ip0, ip1);
                     break;
 
                 case REPEATER_STARTUP:

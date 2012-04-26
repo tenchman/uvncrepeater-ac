@@ -24,9 +24,9 @@ extern int idList[];
 
 extern int requireListedServer;
 
-extern addrParts srvListAllow[];
+extern struct in46_addr srvListAllow[];
 
-extern addrParts srvListDeny[];
+extern struct in46_addr srvListDeny[];
 
 extern char ownIpAddress[];
 

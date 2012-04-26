@@ -54,7 +54,6 @@
 #include "commondefines.h"
 #include "repeaterproc.h"
 #include "readini.h"
-#include "repeaterutil.h"
 #include "repeaterevents.h"
 #include "repeater.h"
 
@@ -98,7 +97,7 @@ typedef struct _repeaterInfo {
     unsigned long timeStamp;
 
     /* Ip address of peer */
-    addrParts peerIp;
+    struct in46_addr peerIp;
 
     /* There are 3 connection levels (using variables "code" and "active"):
      * A. code==0,active==false: fully idle, no connection attempt detected
@@ -207,6 +206,20 @@ void fatal(const char *fmt, ...)
     stopped = true;
 }
 
+static void ipstr(struct sockaddr *sa, char *s, size_t n)
+{
+    switch (sa->sa_family) {
+	case AF_INET:
+	  inet_ntop(sa->sa_family, &(((struct sockaddr_in *)sa)->sin_addr), s, n);
+	  break;
+	case AF_INET6:
+	  inet_ntop(sa->sa_family, &(((struct sockaddr_in6 *)sa)->sin6_addr), s, n);
+	  break;
+	default:
+	  memcpy(s, "?.?.?.?", 8);
+    }
+}
+
 
 /* Try to connect to event listener, return connected socket if success, -1
  * if error. Parameter listenerIp holds eventlistener's ip address on return
@@ -215,39 +228,35 @@ void fatal(const char *fmt, ...)
 int openConnectionToEventListener(const char *host, unsigned short port, char *listenerIp, int listenerIpSize)
 {
     int s;
-    struct sockaddr_in saddr;
-    struct hostent *h;
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+    char service[6];
 
-    h = gethostbyname(host);
-    if (NULL == h) {
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    if (0 != getaddrinfo(host, service, &hints, &result)) {
         debug(LEVEL_2, "openConnectionToEventListener(): can't resolve hostname: %s\n", host);
         return -1;
     }
-    saddr.sin_family = AF_INET;
-    saddr.sin_port = htons(port);
 
-    /* Interesting;-) typecast / indirection thing copied from "Beej's Guide
-     * to network programming". See http://beej.us/guide/bgnet/ for more info
-     */
-    saddr.sin_addr = *((struct in_addr *)h->h_addr_list[0]);
-
-    memset(&(saddr.sin_zero), '\0', 8); /* zero the rest of the struct */
-
-    strlcpy(listenerIp, inet_ntoa(saddr.sin_addr), listenerIpSize);
-
-    debug(LEVEL_3, "openConnectionToEventListener(): connecting to %s:%u\n", listenerIp, port);
-
+    snprintf(service, sizeof(service), "%hu", port);
     s = socket(AF_INET, SOCK_STREAM, 0);
 
-    /* Trying to connect with timeout */
-    if (connectWithTimeout(s, (struct sockaddr *) &saddr, sizeof(saddr), TIMEOUT_10SECS) != 0) {
-        debug(LEVEL_2, "openConnectionToEventListener(): connectWithTimeout() failed.\n");
-        close(s);
-        strlcpy(listenerIp, "", listenerIpSize);
-        return -1;
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+	/* Trying to connect with timeout */
+	if (0 != connectWithTimeout(s, rp->ai_addr, rp->ai_addrlen, TIMEOUT_10SECS)) {
+	    debug(LEVEL_2, "openConnectionToEventListener(): connectWithTimeout() failed.\n");
+	    return -1;
+	} else {
+	    ipstr(rp->ai_addr, listenerIp, listenerIpSize);
+	    debug(LEVEL_3, "openConnectionToEventListener(): connecting to %s:%u\n", listenerIp, port);
+	    return s;
+	}
     }
-    else
-        return s;
+    close(s);
+    return -1;
 }
 
 
@@ -464,9 +473,9 @@ static int addServerList(int socket, long code, char *peerIp)
             debug(LEVEL_3, "addServerList(): Server added to list: code = %ld, index = %d\n", code, i);
             servers[i] -> code = code;
             servers[i] -> socket = socket;
-            servers[i] -> peerIp = getAddrPartsFromString(peerIp);
             servers[i] -> timeStamp = time(NULL);  /* 1 second accuracy is enough ? */
             servers[i] -> active = false;
+            inet46_pton(peerIp, &servers[i]->peerIp);
             return i;
         }
     }
@@ -532,9 +541,9 @@ static int addViewerList(int socket, long code, char *peerIp)
             debug(LEVEL_3, "addViewerList(): Viewer added to list: code = %ld, index = %d\n", code, i);
             viewers[i] -> code = code;
             viewers[i] -> socket = socket;
-            viewers[i] -> peerIp = getAddrPartsFromString(peerIp);
             viewers[i] -> timeStamp = time(NULL);
             viewers[i] -> active = false;
+            inet46_pton(peerIp, &viewers[i]->peerIp);
             return i;
         }
     }
@@ -984,19 +993,19 @@ static int connectWithTimeout(int socket, const struct sockaddr *addr, socklen_t
  * in repeater.ini
  * return true if denied address, false otherwise
  */
-static bool isServerAddressDenied(addrParts srvAddr)
+static bool isServerAddressDenied(struct in46_addr srvAddr)
 {
     int ii;
+    char buf[INET6_ADDRSTRLEN + 4];
+    char deny[INET6_ADDRSTRLEN + 4];
 
     for(ii = 0; ii < SERVERS_LIST_SIZE; ii++) {
-        if (((srvAddr.a == srvListDeny[ii].a) || (srvListDeny[ii].a == 0)) &&
-            ((srvAddr.b == srvListDeny[ii].b) || (srvListDeny[ii].b == 0)) &&
-            ((srvAddr.c == srvListDeny[ii].c) || (srvListDeny[ii].c == 0)) &&
-            ((srvAddr.d == srvListDeny[ii].d) || (srvListDeny[ii].d == 0)) ) {
-                debug(LEVEL_3, "isServerAddressDenied(): address is in deny list, denying (%d.%d.%d.%d)\n",
-                    srvAddr.a,srvAddr.b,srvAddr.c,srvAddr.d);
-
-                return true;
+        if (0 == inet46_memberof(&srvListDeny[ii], &srvAddr)) {
+	    inet46_ntop(&srvAddr, buf, sizeof(buf));
+	    inet46_ntop(&srvListDeny[ii], deny, sizeof(deny));
+            debug(LEVEL_3, "isServerAddressDenied(): address is in deny list (%s), denying (%s)\n",
+                    deny, buf);
+            return true;
         }
     }
 
@@ -1010,17 +1019,14 @@ static bool isServerAddressDenied(addrParts srvAddr)
 static bool isServerAddressAllowed(char *serverIp)
 {
     int ii;
-    addrParts srvAddr;
+    struct in46_addr srvAddr;
 
-    srvAddr = getAddrPartsFromString(serverIp);
+    inet46_pton(serverIp, &srvAddr);
 
     for(ii = 0; ii < SERVERS_LIST_SIZE; ii++) {
 	/* allow if exact match or if place is 0 in allow list */
-	if (((srvAddr.a == srvListAllow[ii].a) || (srvListAllow[ii].a == 0)) &&
-	    ((srvAddr.b == srvListAllow[ii].b) || (srvListAllow[ii].b == 0)) &&
-	    ((srvAddr.c == srvListAllow[ii].c) || (srvListAllow[ii].c == 0)) &&
-	    ((srvAddr.d == srvListAllow[ii].d) || (srvListAllow[ii].d == 0)) ) {
-		/* Allowed so far, check denial */
+        if (0 == inet46_memberof(&srvListAllow[ii], &srvAddr)) {
+	    /* Allowed so far, check denial */
 	    if (!isServerAddressDenied(srvAddr)) {
 		debug(LEVEL_3, "isServerAddressAllowed(): address is OK, allowing (%s)\n", serverIp);
 		return true;
@@ -1220,7 +1226,6 @@ int nonBlockingAccept(int socket, struct sockaddr *sa, socklen_t *sockLen)
     return socketToReturn;
 }
 
-
 /* Accept connections from both servers and viewers
  *  connectionFrom == CONNECTIONFROMSERVER means server is connecting,
  *  connectionFrom == CONNECTIONFROMVIEWER means viewer is connecting
@@ -1232,9 +1237,9 @@ static void acceptConnection(int socket, int connectionFrom)
     int connection;
     char id[MAX_HOST_NAME_LEN + 1];
     long code;
-    struct sockaddr_in client;
+    struct sockaddr client;
     socklen_t sockLen;
-    char peerIp[MAX_IP_LEN];
+    char peerIp[INET6_ADDRSTRLEN];
     int connMode;   /* Connection mode: CONN_MODE1 or CONN_MODE2 */
 
     /* These variables are used in Mode 1 */
@@ -1244,13 +1249,12 @@ static void acceptConnection(int socket, int connectionFrom)
 
     sockLen = sizeof(struct sockaddr_in);
 
-    connection = nonBlockingAccept(socket, (struct sockaddr *) &client, &sockLen);
+    connection = nonBlockingAccept(socket, &client, &sockLen);
 
     if (connection < 0)
         debug(LEVEL_2, "acceptConnection(): accept() failed, errno=%d (%s)\n", errno, strerror(errno));
     else {
-        strlcpy(peerIp, inet_ntoa(client.sin_addr), MAX_IP_LEN);
-
+	ipstr(&client, peerIp, INET6_ADDRSTRLEN);
         debug(LEVEL_1, "acceptConnection(): connection accepted ok from ip: %s\n", peerIp);
 
         if (connectionFrom == CONNECTION_FROM_VIEWER) {
@@ -1413,12 +1417,12 @@ static void acceptConnection(int socket, int connectionFrom)
                             repeaterEvent event;
                             connectionEvent connEv;
                             sessionEvent sessEv;
-                            addrParts serverIp;
-                            addrParts viewerIp;
+                            struct in46_addr serverIp;
+                            struct in46_addr viewerIp;
 
                             /* Addresses in compact binary form */
-                            viewerIp = getAddrPartsFromString(peerIp);
-                            serverIp = getAddrPartsFromString(connMode1ServerIp);
+                            inet46_pton(peerIp, &viewerIp);
+                            inet46_pton(connMode1ServerIp, &serverIp);
 
                             /* VIEWER_CONNECT */
                             event.eventNum = VIEWER_CONNECT;
@@ -1500,10 +1504,10 @@ static void acceptConnection(int socket, int connectionFrom)
                     if (useEventInterface) {
                         repeaterEvent event;
                         connectionEvent connEv;
-                        addrParts viewerIp;
+                        struct in46_addr viewerIp;
 
                         /* Address in compact binary form */
-                        viewerIp = getAddrPartsFromString(peerIp);
+                        inet46_pton(peerIp, &viewerIp);
 
                         /* VIEWER_CONNECT */
                         event.eventNum = VIEWER_CONNECT;
@@ -1665,9 +1669,12 @@ static void acceptConnection(int socket, int connectionFrom)
 static void startListeningOnPort(listenPortInfo * pInfo)
 {
     int yes = 1;
-    struct sockaddr_in name;
+    struct sockaddr name;
+    struct in46_addr me;
 
-    pInfo->socket = socket(PF_INET, SOCK_STREAM, 0);
+    inet46_pton(ownIpAddress, &me);
+
+    pInfo->socket = socket(me.family, SOCK_STREAM, 0);
 
     if (pInfo->socket < 0)
         fatal("startListeningOnPort(): socket() failed, errno=%d (%s)\n", errno, strerror(errno));
@@ -1679,11 +1686,25 @@ static void startListeningOnPort(listenPortInfo * pInfo)
     else
         debug(LEVEL_3, "startListeningOnPort(): setsockopt() success\n");
 
-    name.sin_family = AF_INET;
 
-    name.sin_port = htons(pInfo->port);
-
-    name.sin_addr.s_addr = inet_addr(ownIpAddress);
+    switch (name.sa_family = me.family) {
+	case AF_INET:
+	    {
+		struct sockaddr_in *in = (struct sockaddr_in *)&name;
+		in->sin_port = htons(pInfo->port);
+		memcpy(&in->sin_addr, &me.in.addr, sizeof(struct in_addr));
+		break;
+	    }
+	case AF_INET6:
+	    {
+		struct sockaddr_in6 *in = (struct sockaddr_in6 *)&name;
+		in->sin6_port = htons(pInfo->port);
+		memcpy(&in->sin6_addr, &me.in.addr6, sizeof(struct in6_addr));
+		break;
+	    }
+	default:
+	    fatal("startListeningOnPort(): unsupported address family; %d\n", name.sa_family);
+    }
 
     if (bind(pInfo->socket, (struct sockaddr *) &name, sizeof(name)) < 0)
         fatal("startListeningOnPort(): bind() to (ip: %s, port: %d) failed, errno=%d (%s)\n",
@@ -1920,12 +1941,13 @@ static void listInitializationValues(void)
     debug(LEVEL_2, "listInitializationValues(): Mode 1 requires listed addresses : %s\n",
         (requireListedServer == 1) ? "Yes" : "No");
     if (requireListedServer == 1) {
+        char buf[INET6_ADDRSTRLEN + 4];
         /* Allow list */
         if (LEVEL_2 <= loggingLevel) {
-            debug(LEVEL_2, "listInitializationValues(): Mode 1 allowed servers/networks (255=Not allowed):");
+	    debug(LEVEL_2, "listInitializationValues(): Mode 1 allowed servers/networks (255=Not allowed):");
             for(ii = 0; ii < SERVERS_LIST_SIZE; ii++) {
-                fprintf(stderr, " %d.%d.%d.%d", srvListAllow[ii].a, srvListAllow[ii].b,
-                    srvListAllow[ii].c, srvListAllow[ii].d);
+		inet46_ntop(&srvListAllow[ii], buf, sizeof(buf));
+		fprintf(stderr, " %s", buf);
             }
             fprintf(stderr, "\n");
         }
@@ -1934,7 +1956,8 @@ static void listInitializationValues(void)
         if (LEVEL_2 <= loggingLevel) {
             debug(LEVEL_2, "listInitializationValues(): Mode 1 denied servers/networks (255=Not denied):");
             for(ii = 0; ii < SERVERS_LIST_SIZE; ii++) {
-                fprintf(stderr, " %d.%d.%d.%d", srvListDeny[ii].a, srvListDeny[ii].b, srvListDeny[ii].c, srvListDeny[ii].d);
+		inet46_ntop(&srvListDeny[ii], buf, sizeof(buf));
+		fprintf(stderr, " %s", buf);
             }
             fprintf(stderr, "\n");
         }

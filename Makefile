@@ -3,9 +3,10 @@ PREFIX  = /usr/local
 
 THECC   = gcc
 THELD   = gcc
-CFLAGS  = -W -Wall -ansi -D_XOPEN_SOURCE=500
+CFLAGS  = -W -Wall # -ansi -D_XOPEN_SOURCE=500
+LDFLAGS =
 OPT     = -O2
-OBJS    = repeater.o repeaterproc.o openbsd_stringfuncs.o iniparser.o readini.o repeaterutil.o repeaterevents.o
+OBJS    = repeater.o repeaterproc.o openbsd_stringfuncs.o iniparser.o readini.o repeaterevents.o in46_addr.o
 
 ifeq ($(V), 1)
 CC = $(THECC)
