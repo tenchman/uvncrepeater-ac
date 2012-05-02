@@ -1,3 +1,5 @@
+PACKAGE = uvncrepeater-ac
+VERSION = 1.0.0
 DESTDIR =
 prefix  = /usr/local
 
@@ -27,7 +29,7 @@ debug: all
 release: CFLAGS += -DNDEBUG
 release: all
 
-CFLAGS += $(OPT)
+CFLAGS += $(OPT) -DREPEATER_VERSION=\"$(VERSION)\"
 
 repeater: $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS)
@@ -42,4 +44,9 @@ install: all
 	$(VERBOSE)cp -f uvncrepeater.ini $(DESTDIR)/etc/$(PACKAGE).ini
 
 clean:
-	$(VERBOSE)rm -f *.o repeater
+	$(VERBOSE)rm -f *.o repeater $(PACKAGE)-$(VERSION).tar.bz2
+
+tarball:
+	tar --files-from=files.lst \
+	  --transform='s,^,$(PACKAGE)-$(VERSION)/,S' \
+	  -cjf $(PACKAGE)-$(VERSION).tar.bz2

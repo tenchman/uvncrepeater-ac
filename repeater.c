@@ -57,7 +57,9 @@
 #include "repeaterevents.h"
 #include "repeater.h"
 
-#define REPEATER_VERSION "0.14"
+#ifndef REPEATER_VERSION
+#define REPEATER_VERSION "devel"
+#endif
 
 #define RFB_PROTOCOL_VERSION_FORMAT "RFB %03d.%03d\n"
 #define RFB_PROTOCOL_MAJOR_VERSION 0
@@ -2050,7 +2052,7 @@ int main(int argc, char **argv)
     stopped = false;
     mode1ConnCode = 0;
 
-    fprintf(stderr, "UltraVnc Linux Repeater version %s\n", REPEATER_VERSION);
+    fprintf(stderr, "UltraVnc Linux Repeater AC version %s\n", REPEATER_VERSION);
 
     /* Read parameters from ini file */
     strlcpy(tmpBuf, (argc >= 2) ? argv[1] : defaultIniFilePathAndName, MAX_PATH);
