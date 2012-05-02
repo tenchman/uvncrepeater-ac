@@ -1,5 +1,5 @@
 DESTDIR =
-PREFIX  = /usr/local
+prefix  = /usr/local
 
 THECC   = gcc
 THELD   = gcc
@@ -36,9 +36,9 @@ repeater: $(OBJS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 install: all
-	$(VERBOSE)mkdir -p $(DESTDIR)$(PREFIX)/bin
+	$(VERBOSE)mkdir -p $(DESTDIR)$(prefix)/bin
 	$(VERBOSE)mkdir -p $(DESTDIR)/etc
-	$(VERBOSE)cp -f repeater $(DESTDIR)$(PREFIX)/bin/$(PACKAGE)
+	$(VERBOSE)cp -f repeater $(DESTDIR)$(prefix)/bin/$(PACKAGE)
 	$(VERBOSE)cp -f uvncrepeater.ini $(DESTDIR)/etc/$(PACKAGE).ini
 
 clean:
