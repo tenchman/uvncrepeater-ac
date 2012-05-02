@@ -38,8 +38,8 @@ repeater: $(OBJS)
 install: all
 	$(VERBOSE)mkdir -p $(DESTDIR)$(PREFIX)/bin
 	$(VERBOSE)mkdir -p $(DESTDIR)/etc
-	$(VERBOSE)cp -f repeater $(DESTDIR)$(PREFIX)/bin/uvncrepeater
-	$(VERBOSE)cp -f uvncrepeater.ini $(DESTDIR)/etc
+	$(VERBOSE)cp -f repeater $(DESTDIR)$(PREFIX)/bin/$(PACKAGE)
+	$(VERBOSE)cp -f uvncrepeater.ini $(DESTDIR)/etc/$(PACKAGE).ini
 
 clean:
 	$(VERBOSE)rm -f *.o repeater

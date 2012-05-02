@@ -2040,7 +2040,7 @@ int main(int argc, char **argv)
     struct sigaction saInt;
 
     /* ini file default */
-    char defaultIniFilePathAndName[] = "/etc/uvncrepeater.ini";
+    char defaultIniFilePathAndName[] = "/etc/uvncrepeater-ac.ini";
     char tmpBuf[MAX_PATH];
     bool memoryOk;
 
