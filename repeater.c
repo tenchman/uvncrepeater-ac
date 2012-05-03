@@ -625,7 +625,7 @@ static bool checkIdCode(char *IdCode)
 static long parseId(char *IdCode)
 {
     unsigned int ii;
-    int retVal;
+    long int retVal;
 
     debug(LEVEL_3, "parseId(): IdCode = %s\n", IdCode);
 
