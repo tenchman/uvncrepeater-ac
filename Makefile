@@ -3,20 +3,20 @@ VERSION = 1.0.0
 DESTDIR =
 prefix  = /usr/local
 
-THECC   = gcc
-THELD   = gcc
+CC      = gcc
+LD      = gcc
 CFLAGS  = -W -Wall # -ansi -D_XOPEN_SOURCE=500
 LDFLAGS =
 OPT     = -O2
 OBJS    = repeater.o repeaterproc.o openbsd_stringfuncs.o iniparser.o readini.o repeaterevents.o in46_addr.o
 
 ifeq ($(V), 1)
-CC = $(THECC)
-LD = $(THELD)
+THECC = $(CC)
+THELD = $(LD)
 VERBOSE =
 else
-CC = @echo " CC   $@"; $(THECC)
-LD = @echo " LINK $@"; $(THELD)
+THECC = @echo " CC   $@"; $(CC)
+THELD = @echo " LINK $@"; $(LD)
 VERBOSE = @
 endif
 
@@ -32,10 +32,10 @@ release: all
 CFLAGS += $(OPT) -DREPEATER_VERSION=\"$(VERSION)\"
 
 repeater: $(OBJS)
-	$(LD) $(LDFLAGS) -o $@ $(OBJS)
+	$(THELD) $(LDFLAGS) -o $@ $(OBJS)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(THECC) $(CFLAGS) -c $< -o $@
 
 install: all
 	$(VERBOSE)mkdir -p $(DESTDIR)$(prefix)/bin
