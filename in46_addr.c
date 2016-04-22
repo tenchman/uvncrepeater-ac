@@ -17,7 +17,7 @@
  * USA.
 **/
 
-#define _SVID_SOURCE 1 /* s6_addr32 */
+#define _DEFAULT_SOURCE 1 /* s6_addr32 */
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
