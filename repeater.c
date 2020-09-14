@@ -1674,7 +1674,11 @@ static void acceptConnection(int socket, int connectionFrom)
 static void startListeningOnPort(listenPortInfo * pInfo)
 {
     int yes = 1;
-    struct sockaddr name;
+    union {
+      struct sockaddr_in sin;
+      struct sockaddr_in6 sin6;
+    } name;
+    socklen_t name_size;
     struct in46_addr me;
 
     inet46_pton(ownIpAddress, &me);
@@ -1692,26 +1696,28 @@ static void startListeningOnPort(listenPortInfo * pInfo)
         debug(LEVEL_3, "startListeningOnPort(): setsockopt() success\n");
 
 
-    switch (name.sa_family = me.family) {
-	case AF_INET:
-	    {
-		struct sockaddr_in *in = (struct sockaddr_in *)&name;
-		in->sin_port = htons(pInfo->port);
-		memcpy(&in->sin_addr, &me.in.addr, sizeof(struct in_addr));
-		break;
-	    }
-	case AF_INET6:
-	    {
-		struct sockaddr_in6 *in = (struct sockaddr_in6 *)&name;
-		in->sin6_port = htons(pInfo->port);
-		memcpy(&in->sin6_addr, &me.in.addr6, sizeof(struct in6_addr));
-		break;
-	    }
-	default:
-	    fatal("startListeningOnPort(): unsupported address family; %d\n", name.sa_family);
+    switch (me.family) {
+        case AF_INET:
+            {
+                name_size = sizeof(struct sockaddr_in);
+                name.sin.sin_family = me.family;
+                name.sin.sin_port = htons(pInfo->port);
+                name.sin.sin_addr = me.in.addr;
+                break;
+            }
+        case AF_INET6:
+            {
+                name_size = sizeof(struct sockaddr_in6);
+                name.sin6.sin6_family = me.family;
+                name.sin6.sin6_port = htons(pInfo->port);
+                name.sin6.sin6_addr = me.in.addr6;
+                break;
+            }
+        default:
+            fatal("startListeningOnPort(): unsupported address family; %d\n", me.family);
     }
 
-    if (bind(pInfo->socket, (struct sockaddr *) &name, sizeof(name)) < 0)
+    if (bind(pInfo->socket, (struct sockaddr *) &name, name_size) < 0)
         fatal("startListeningOnPort(): bind() to (ip: %s, port: %d) failed, errno=%d (%s)\n",
             ownIpAddress, pInfo -> port, errno, strerror(errno));
     else
